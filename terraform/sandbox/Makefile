@@ -1,9 +1,10 @@
 #!make
 
-include ../../config/sandbox/aks.env
-include ../../config/sandbox/aks-sensitive.env
 SUBSCRIPTION_ID=8d01f77a-4a6f-4548-b5f3-743769a1b178
 export
+
+test:
+	env | sort | grep AKS
 
 connect:
 	az login
