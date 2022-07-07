@@ -12,6 +12,7 @@ variable K8S_TOKEN {}
 variable AKS_RESOURCE_GROUP {}
 variable AKS_CLUSTER {}
 variable AKS_NAMESPACE {}
+variable GITHUB_TOKEN {}
 variable kv-name {
   default = "fergsretfdemosbx"
 }

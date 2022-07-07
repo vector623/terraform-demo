@@ -24,6 +24,12 @@ provider kubernetes {
   token                  = base64decode(var.K8S_TOKEN)
 }
 
+provider github {
+  alias = "supplycom"
+  owner = "supplycom"
+  token = var.GITHUB_TOKEN
+}
+
 data azurerm_resource_group feiseu2-supply-rg-001 {
   provider = azurerm.sandbox
   name     = "feiseu2-supply-rg-001"
@@ -35,6 +41,20 @@ data azurerm_client_config sandbox {
 
 data azuread_client_config sandbox {}
 
+data github_repository project-repo {
+  provider = github.supplycom
+  name = "terraform-demo"
+}
+
+data azuread_user david-gallmeier {
+  user_principal_name = "david.gallmeier@supply.com"
+}
+
+data azuread_user carl-napoli {
+  user_principal_name = "carl.napoli1@ferguson.com"
+}
+
 data azuread_service_principal main {
   application_id = var.SBX_APP_SPN_APPID
 }
+

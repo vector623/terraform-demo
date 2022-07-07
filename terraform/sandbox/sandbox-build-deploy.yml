@@ -1,0 +1,114 @@
+name: sandbox-build-deploy
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+#  pull_request:
+#    branches:
+#      - main
+jobs:
+  setref:
+    environment: sandbox
+    runs-on: ubuntu-latest
+    outputs:
+      gitref: ${{ steps.set-gitrefs.outputs.gitref }}
+      gitcommit: ${{ steps.set-gitrefs.outputs.gitcommit }}
+      jiraissue: ${{ steps.set-gitrefs.outputs.jiraissue }}
+    steps:
+      - name: Cancel workflow
+        if: ${{ !env.ACT }}
+        uses: styfle/cancel-workflow-action@0.8.0
+        with:
+          access_token: ${{ github.token }}
+      - uses: actions/checkout@v2
+      - id: set-gitrefs
+        name: Set gitrefs
+        run: |
+          echo "ref_name: ${{ github.ref_name }}"
+          echo "event_name: ${{ github.event_name }}"
+          echo "head_ref: ${{ github.head_ref }}"
+          if [[ ${{ github.ref_name }} =~ "main$" ]]; then
+            echo "zero"
+            BRANCH=main
+          elif [[ ${{ github.ref_name }} =~ merge$ ]]; then
+            echo "first"
+            BRANCH=`echo ${{ github.head_ref }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/" | head -c 42`
+          elif [[ ${{ github.event_name }} = "pull_request" ]]; then
+            echo "second"
+            BRANCH=`echo ${{ github.head_ref }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/" | head -c 42`
+          elif [[ ${{ github.event_name }} = "delete" ]]; then
+            echo "third"
+            BRANCH=`echo ${{ github.event.ref }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/" | head -c 42`
+          elif [[ ${{ github.event_name }} = "push" && `echo ${{ github.ref_name }} | grep -o "main$"` = "main" ]]; then
+            echo "fourth"
+            BRANCH=main
+          else
+            echo "fifth"
+            BRANCH=`echo ${{ github.ref_name }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/" | head -c 42`
+          fi
+          GITREF=${BRANCH:-main}
+          echo ::set-output name=gitref::"$GITREF"
+          echo "GITREF: ${GITREF}"
+          
+          if [[ ${{ github.ref_name }} = main ]]; then
+            JIRAISSUE=main
+          elif [[ ${{ github.ref_name }} =~ ^efdc-[0-9]* ]]; then
+            JIRAISSUE=`echo ${BRANCH} | grep -o "^efdc-[0-9]*"`
+          else
+            JIRAISSUE=na
+          fi
+          echo "JIRAISSUE: ${JIRAISSUE}"
+          echo ::set-output name=jiraissue::"$JIRAISSUE"
+          
+          GITCOMMIT=`echo ${GITHUB_SHA} | cut -c1-8`
+          echo ::set-output name=gitcommit::"$GITCOMMIT"
+          echo "GITCOMMIT: ${GITCOMMIT}"
+      - name: Check outputs
+        run: |
+          echo "gitref: ${{ steps.set-gitrefs.outputs.gitref }}"
+          echo "gitcommit: ${{ steps.set-gitrefs.outputs.gitcommit }}"
+          echo "jiraissue: ${{ steps.set-gitrefs.outputs.jiraissue }}"
+  docker-build-push:
+    environment: sandbox
+    needs: setref
+    runs-on: ubuntu-latest
+    if: needs.setref.outputs.branchmanifest == null || needs.setref.outputs.branchmanifest != needs.setref.outputs.commitmanifest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check gitref
+        run: |
+          echo "gitref (branch): ${{ needs.setref.outputs.gitref }}"
+          echo "gitcommit: ${{ needs.setref.outputs.gitcommit }}"
+          echo "jiraissue: ${{ needs.setref.outputs.jiraissue }}"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Azure login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KEYVAULT_CREDS }}
+      - id: set-kvm-secrets
+        name: Set kvm secrets
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: 'react-ferg-store-sbx' # name of key vault in Azure portal
+          secrets: 'ACR-SPN-ID,ACR-SPN-PASS'  # comma separated list of secret keys to fetch from key vault
+      - name: Azure login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KEYVAULT_CREDS }}
+      - name: Login to supplycom
+        uses: docker/login-action@v1
+        with:
+          registry: supplysandbox.azurecr.io
+          username: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-ID }}
+          password: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-PASS }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          push: false
+          tags: supplysandbox.azurecr.io/terraform-demo:latest
+          build-args: github_token=${{ secrets.NPM_GH_TOKEN }}
+          context: ./docker
