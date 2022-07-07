@@ -2,7 +2,7 @@ locals {
   kv-users = toset([
     data.azuread_user.david-gallmeier.object_id,
     data.azuread_user.carl-napoli.object_id,
-    data.azuread_service_principal.main.object_id
+    data.azuread_service_principal.main.application_id
   ])
 }
 
