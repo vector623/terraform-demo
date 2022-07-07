@@ -1,8 +1,7 @@
 locals {
   kv-users = toset([
     data.azuread_user.david-gallmeier.object_id,
-    data.azuread_user.carl-napoli.object_id,
-    data.azuread_service_principal.main.application_id
+    data.azuread_user.carl-napoli.object_id
   ])
 }
 
@@ -32,6 +31,17 @@ resource azurerm_key_vault_access_policy dev-access {
 
   key_vault_id       = azurerm_key_vault.keyvault.id
   object_id          = each.value
+  tenant_id          = data.azurerm_client_config.sandbox.tenant_id
+  secret_permissions = [
+    "Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"
+  ]
+}
+
+resource azurerm_key_vault_access_policy spn-access {
+  provider = azurerm.sandbox
+
+  key_vault_id       = azurerm_key_vault.keyvault.id
+  object_id          = data.azuread_service_principal.main.id
   tenant_id          = data.azurerm_client_config.sandbox.tenant_id
   secret_permissions = [
     "Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"
