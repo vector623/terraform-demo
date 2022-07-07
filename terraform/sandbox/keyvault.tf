@@ -80,6 +80,10 @@ locals {
   })
 }
 
+output azurekvcreds {
+  value = local.azurekvcreds
+}
+
 resource github_actions_environment_secret azure-kv-creds-json {
   provider = github.supplycom
   repository = data.github_repository.project-repo.name
