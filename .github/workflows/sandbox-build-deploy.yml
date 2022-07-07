@@ -108,7 +108,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          push: false
+          push: true
           tags: supplysandbox.azurecr.io/terraform-demo:latest
           build-args: github_token=${{ secrets.NPM_GH_TOKEN }}
           context: ./docker
