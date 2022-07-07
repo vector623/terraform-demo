@@ -93,7 +93,7 @@ jobs:
         name: Set kvm secrets
         uses: azure/get-keyvault-secrets@v1
         with:
-          keyvault: 'react-ferg-store-sbx' # name of key vault in Azure portal
+          keyvault: 'fergsretfdemosbx' # name of key vault in Azure portal
           secrets: 'ACR-SPN-ID,ACR-SPN-PASS'  # comma separated list of secret keys to fetch from key vault
       - name: Azure login
         uses: Azure/login@v1
