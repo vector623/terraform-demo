@@ -78,3 +78,4 @@ fabric.properties
 
 /config/sandbox/aks-sensitive.env
 /config/sandbox/azure-sensitive.env
+/helm/demo-site/charts/
