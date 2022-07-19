@@ -60,3 +60,7 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "demo-site.fullhost" -}}
+{{- printf "%s.%s" .Values.git.ref .Values.ingress.domainname -}}
+{{- end }}

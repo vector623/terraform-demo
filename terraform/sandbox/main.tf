@@ -15,6 +15,20 @@ provider azurerm {
   skip_provider_registration = true
 }
 
+provider azurerm {
+  alias                      = "dns"
+  subscription_id            = var.DEV_SUBSCRIPTION_ID
+  features {}
+  skip_provider_registration = true
+}
+
+provider azurerm {
+  alias                      = "dev"
+  subscription_id            = var.DEV_SUBSCRIPTION_ID
+  features {}
+  skip_provider_registration = true
+}
+
 provider azuread {}
 
 provider kubernetes {
@@ -30,20 +44,34 @@ provider github {
   token = var.GITHUB_TOKEN
 }
 
+provider acme {
+  server_url = "https://acme-v02.api.letsencrypt.org/directory"
+}
+
 data azurerm_resource_group feiseu2-supply-rg-001 {
   provider = azurerm.sandbox
   name     = "feiseu2-supply-rg-001"
+}
+
+data azurerm_resource_group feideu2-supply-rg-001 {
+  provider = azurerm.dev
+  name     = "feideu2-supply-rg-001"
 }
 
 data azurerm_client_config sandbox {
   provider = azurerm.sandbox
 }
 
+data azurerm_client_config dev {
+  provider = azurerm.dev
+}
+
 data azuread_client_config sandbox {}
+
 
 data github_repository project-repo {
   provider = github.supplycom
-  name = "terraform-demo"
+  name     = "terraform-demo"
 }
 
 data azuread_user david-gallmeier {
@@ -57,4 +85,3 @@ data azuread_user carl-napoli {
 data azuread_service_principal main {
   application_id = var.SBX_APP_SPN_APPID
 }
-

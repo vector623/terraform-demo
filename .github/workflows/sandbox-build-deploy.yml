@@ -112,3 +112,46 @@ jobs:
           tags: supplysandbox.azurecr.io/terraform-demo:latest
           build-args: github_token=${{ secrets.NPM_GH_TOKEN }}
           context: ./docker
+  helm-deploy-job:
+    environment: sandbox
+    runs-on: ubuntu-latest
+    needs:
+      - setref
+      - docker-build-push
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set gitref
+        run: |
+          echo ::set-output name=gitref::"${GITHUB_REF##*/}"
+        id: vars
+      - name: Check gitref
+        run: |
+          echo ${{ needs.setref.outputs.gitref }}
+      - name: Set k8s context
+        uses: azure/k8s-set-context@v1
+        with:
+          method: service-account
+          k8s-url: https://feissupplyaks001-128cf81f.hcp.eastus2.azmk8s.io/
+          k8s-secret: |
+            ${{ secrets.K8S_AUTH }}
+      - name: Debug
+        run: |
+          kubectl get namespaces
+      - name: Uninstall helm
+        run: |
+          helm uninstall -n dev preph-web-$GITREF
+        continue-on-error: true
+        env:
+          GITREF: ${{ needs.setref.outputs.gitref }}
+      - name: Package and install helm
+        run: |
+          mkdir preph-web/charts/
+          helm package \
+            --version 0.1.0 ./preph-web \
+            --destination ./preph-web/charts/ \
+            --app-version $GITREF
+          helm install -n dev preph-web-$GITREF preph-web/charts/preph-web-0.1.0.tgz \
+            --set gitref=$GITREF
+        working-directory: helm
+        env:
+          GITREF: ${{ needs.setref.outputs.gitref }}

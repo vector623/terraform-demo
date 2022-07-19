@@ -14,8 +14,10 @@ package:
 
 install:
 	helm install -n dev demo-site-${GITREF} demo-site/charts/demo-site-0.1.0.tgz \
-		--set gitref=${GITREF}
+		--set git.ref=${GITREF}
 
 uninstall:
 	-helm uninstall -n dev demo-site-${GITREF}
+
+all: uninstall clean package install
 
