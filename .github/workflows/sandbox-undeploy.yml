@@ -1,0 +1,125 @@
+name: sandbox-undeploy
+on:
+  push:
+    branches:
+      - "TestBranch20220719"
+  delete:
+    branches:
+      - '*'
+  workflow_dispatch:
+jobs:
+  setref:
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    environment: sandbox
+    runs-on: ubuntu-latest
+    outputs:
+      gitref: ${{ steps.set-gitrefs.outputs.gitref }}
+    steps:
+      - name: Cancel workflow
+        if: ${{ !env.ACT }}
+        uses: styfle/cancel-workflow-action@0.8.0
+        with:
+          access_token: ${{ github.token }}
+      - uses: actions/checkout@v2
+      - id: debug-contexts
+        name: Debug
+        run: |
+          echo "github.head_ref: ${{github.head_ref}}"
+          echo "github.ref: ${{github.ref}}"
+          echo "github.ref_name	: ${{github.ref_name}}"
+          echo "github.ref_protected: ${{github.ref_protected}}"
+          echo "github.event_name: ${{github.event_name}}"
+          echo "github.event.head_ref: ${{github.event.head_ref}}"
+          echo "github.event.ref: ${{github.event.ref}}"
+          echo "github.event.ref_name: ${{github.event.ref_name}}"
+          echo "github.event.ref_protected: ${{github.event.ref_protected}}"
+          
+          echo "branch `echo ${{github.event.ref}} | grep -o -E \"[a-zA-Z0-9._-]+$\"`"
+      - id: set-gitrefs
+        name: Set gitrefs
+        run: |
+          if [[ ${{ github.event_name }} = "pull_request" ]]; then
+            GITREF=`echo ${{ github.head_ref }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/"`
+          elif [[ ${{ github.event_name }} = "delete" ]]; then
+            GITREF=`echo ${{ github.event.ref }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/"`
+          else
+            GITREF=`echo ${{ github.ref_name }} | tr '[:upper:]' '[:lower:]' | sed "s/\//-/"`
+          fi
+          GITCOMMIT=`echo ${GITHUB_SHA} | cut -c1-8`
+          echo ::set-output name=gitref::"$GITREF"
+          echo ::set-output name=gitcommit::"$GITCOMMIT"
+          echo "GITREF: ${GITREF}"
+          echo "GITCOMMIT: ${GITCOMMIT}"
+      - name: Git pull
+        run: |
+          git fetch --tags
+      - name: Azure login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KEYVAULT_CREDS }}
+      - name: Check outputs
+        run: |
+          echo "gitref: ${{ steps.set-gitrefs.outputs.gitref }}"
+          echo "gitcommit: ${{ steps.set-gitrefs.outputs.gitcommit }}"
+  docker-build-push:
+    environment: sandbox
+    needs: setref
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check gitref
+        run: |
+          echo "gitref (branch): ${{ needs.setref.outputs.gitref }}"
+          echo "gitcommit: ${{ needs.setref.outputs.gitcommit }}"
+      - name: Azure login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KEYVAULT_CREDS }}
+      - id: set-kvm-secrets
+        name: Set kvm secrets
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: 'fergsretfdemosbx' # name of key vault in Azure portal
+          secrets: 'ACR-SPN-ID,ACR-SPN-PASS'  # comma separated list of secret keys to fetch from key vault
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v1
+      - name: Login to supplysandbox
+        uses: docker/login-action@v1
+        with:
+          registry: supplysandbox.azurecr.io
+          username: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-ID }}
+          password: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-PASS }}
+      - name: Delete old image
+        if: needs.setref.outputs.branchmanifest == null || needs.setref.outputs.branchmanifest != needs.setref.outputs.commitmanifest
+        run: |
+          echo "deleting: terraform-demo:$BRANCH"
+          az acr repository delete --name supplysandbox --image terraform-demo:$BRANCH --yes
+        env:
+          BRANCH: ${{ needs.setref.outputs.gitref }}
+        continue-on-error: true
+#  helm-deploy-job:
+#    environment: sandbox
+#    runs-on: ubuntu-latest
+#    needs:
+#      - setref
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set gitref
+#        run: echo ::set-output name=gitref::"${GITHUB_REF##*/}"
+#        id: vars
+#      - name: Check gitref
+#        run: |
+#          echo ${{ needs.setref.outputs.gitref }}
+#      - name: Set k8s context
+#        uses: azure/k8s-set-context@v1
+#        with:
+#          method: service-account
+#          k8s-url: https://feissupplyaks001-128cf81f.hcp.eastus2.azmk8s.io/
+#          k8s-secret: |
+#            ${{ secrets.K8S_AUTH }}
+#      - name: Uninstall helm
+#        run: |
+#          helm uninstall -n dev preph-web-$GITREF
+#        continue-on-error: true
+#        env:
+#          GITREF: ${{ needs.setref.outputs.gitref }}

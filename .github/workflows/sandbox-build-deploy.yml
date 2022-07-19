@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+#      - TestBranch20220719
   workflow_dispatch:
 #  pull_request:
 #    branches:
@@ -109,7 +110,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: supplysandbox.azurecr.io/terraform-demo:latest
+          tags: supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitref }}
           build-args: github_token=${{ secrets.NPM_GH_TOKEN }}
           context: ./docker
   helm-deploy-job:
