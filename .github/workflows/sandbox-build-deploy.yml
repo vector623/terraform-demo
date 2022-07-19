@@ -139,19 +139,19 @@ jobs:
           kubectl get namespaces
       - name: Uninstall helm
         run: |
-          helm uninstall -n dev preph-web-$GITREF
+          helm uninstall -n dev demo-site-$GITREF
         continue-on-error: true
         env:
           GITREF: ${{ needs.setref.outputs.gitref }}
       - name: Package and install helm
         run: |
-          mkdir preph-web/charts/
+          mkdir demo-site/charts/
           helm package \
-            --version 0.1.0 ./preph-web \
-            --destination ./preph-web/charts/ \
+            --version 0.1.0 ./demo-site \
+            --destination ./demo-site/charts/ \
             --app-version $GITREF
-          helm install -n dev preph-web-$GITREF preph-web/charts/preph-web-0.1.0.tgz \
-            --set gitref=$GITREF
+          helm install -n dev demo-site-$GITREF demo-site/charts/demo-site-0.1.0.tgz \
+            --set git.ref=$GITREF
         working-directory: helm
         env:
           GITREF: ${{ needs.setref.outputs.gitref }}
