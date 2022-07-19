@@ -84,10 +84,3 @@ output azurekvcreds {
   value = local.azurekvcreds
 }
 
-resource github_actions_environment_secret azure-kv-creds-json {
-  provider = github.supplycom
-  repository = data.github_repository.project-repo.name
-  environment = github_repository_environment.env.environment
-  secret_name = "AZURE_KEYVAULT_CREDS"
-  plaintext_value = jsonencode(local.azurekvcreds)
-}
