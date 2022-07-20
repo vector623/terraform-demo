@@ -2,7 +2,7 @@ name: sandbox-build-deploy
 on:
   push:
     branches:
-      - master
+#      - master
 #      - TestBranch20220719
   workflow_dispatch:
 #  pull_request:
