@@ -131,3 +131,46 @@ jobs:
         run: |
           echo "newversion: ${{ steps.new-version.outputs.newversion }}"
           echo "newversionwov: ${{ steps.new-version.outputs.newversionwov }}"
+  docker-build-push:
+    environment: sandbox
+    needs:
+      - setref
+      - version-bump
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check gitref
+        run: |
+          echo "gitref: ${{ needs.setref.outputs.gitref }}"
+          echo "newversionwov: ${{ needs.version-bump.outputs.newversionwov }}"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Azure login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KEYVAULT_CREDS }}
+      - id: set-kvm-secrets
+        name: Set kvm secrets
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: 'fergsretfdemosbx' # name of key vault in Azure portal
+          secrets: 'ACR-SPN-ID,ACR-SPN-PASS'  # comma separated list of secret keys to fetch from key vault
+      - name: Login to supplysandbox
+        uses: docker/login-action@v1
+        with:
+          registry: supplysandbox.azurecr.io
+          username: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-ID }}
+          password: ${{ steps.set-kvm-secrets.outputs.ACR-SPN-PASS }}
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2
+        with:
+          tags: supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitref }},supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitcommit }}
+          build-args: git_commit=${{ needs.setref.outputs.gitcommit }},docker_tag=${{ needs.version-bump.outputs.newversionwov }}
+          push: true
+          context: ./js
+          labels: |
+            gitref=${{ needs.setref.outputs.gitref }}
+            gitcommit=${{ needs.setref.outputs.gitcommit }}
+            repo=https://github.com/supplycom/terraform-demo
