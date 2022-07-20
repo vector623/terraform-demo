@@ -166,7 +166,7 @@ jobs:
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
         with:
-          tags: supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitref }},supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitcommit }}
+          tags: supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.version-bump.newversionwov }}
           build-args: git_commit=${{ needs.setref.outputs.gitcommit }},docker_tag=${{ needs.version-bump.outputs.newversionwov }}
           push: true
           context: ./docker
