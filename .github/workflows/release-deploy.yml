@@ -169,7 +169,7 @@ jobs:
           tags: supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitref }},supplysandbox.azurecr.io/terraform-demo:${{ needs.setref.outputs.gitcommit }}
           build-args: git_commit=${{ needs.setref.outputs.gitcommit }},docker_tag=${{ needs.version-bump.outputs.newversionwov }}
           push: true
-          context: ./js
+          context: ./docker
           labels: |
             gitref=${{ needs.setref.outputs.gitref }}
             gitcommit=${{ needs.setref.outputs.gitcommit }}
