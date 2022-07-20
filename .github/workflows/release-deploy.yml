@@ -66,3 +66,68 @@ jobs:
           echo "gitref: ${{ steps.set-gitrefs.outputs.gitref }}"
           echo "gitcommit: ${{ steps.set-gitrefs.outputs.gitcommit }}"
           echo "jiraissue: ${{ steps.set-gitrefs.outputs.jiraissue }}"
+  version-bump:
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    needs:
+      - setref
+    runs-on: ubuntu-latest
+    outputs:
+      newversion: ${{ steps.new-version.outputs.newversion }}
+      newversionwov: ${{ steps.new-version.outputs.newversionwov }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+        with:
+          node-version: '12'
+      - name: Check refs
+        run: |
+          echo "nextversion: ${{ needs.setref.outputs.nextversion }}"
+          #echo "nextmajor: ${{ needs.setref.outputs.nextmajor }}"
+      - name: Pull changes
+        run: |
+          git fetch
+          git branch -l
+          git ls-remote
+          git pull origin main --tags
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: /opt/hostedtoolcache/node
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Apt update
+        run: |
+          sudo apt-get update -qq
+      - name: Install apt deps
+        run: |
+          sudo apt-get install jq
+      - name: Install node deps
+        run: npm install -g standard-version@9.1.1 semantic-release@17.1.1
+      - name: Configure git
+        run: |
+          git config --global user.email "atlanta.cicd@supply.com"
+          git config --global user.name "Atlanta CICD (Supply)"
+      - name: Version bump
+        run: |
+          standard-version --commit-all --verbose --packageFiles js/package.json --bumpFiles js/package.json
+#      - name: Push changes
+#        uses: ad-m/github-push-action@master
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }}
+#          branch: main
+#          tags: true
+      - id: new-version
+        name: Output new version
+        run: |
+          NEWVERSION=`jq -r ".version" js/package.json`
+          echo ::set-output name=newversion::v$NEWVERSION
+          echo ::set-output name=newversionwov::$NEWVERSION
+      - name: Check outputs
+        run: |
+          echo "newversion: ${{ steps.new-version.outputs.newversion }}"
+          echo "newversionwov: ${{ steps.new-version.outputs.newversionwov }}"
