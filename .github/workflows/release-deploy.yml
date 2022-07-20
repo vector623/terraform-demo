@@ -114,7 +114,7 @@ jobs:
           git config --global user.name "Atlanta CICD (Supply)"
       - name: Version bump
         run: |
-          standard-version --commit-all --verbose --packageFiles js/package.json --bumpFiles js/package.json
+          standard-version --commit-all --verbose --packageFiles ./package.json --bumpFiles ./package.json
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
