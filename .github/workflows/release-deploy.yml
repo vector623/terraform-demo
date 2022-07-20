@@ -187,31 +187,32 @@ jobs:
         run: |
           echo "newversion: ${{ needs.version-bump.outputs.newversion }}"
           echo "newversion w/o v: ${{ needs.version-bump.outputs.newversionwov }}"
-#      - name: Set k8s context
-#        uses: azure/k8s-set-context@v1
-#        with:
-#          method: service-account
-#          k8s-url: https://feissupplyaks001-128cf81f.hcp.eastus2.azmk8s.io/
-#          k8s-secret: |
-#            ${{ secrets.K8S_AUTH }}
-#      - name: Debug
-#        run: |
-#          kubectl get namespaces
-#      - name: Uninstall helm
-#        run: |
-#          helm uninstall -n dev demo-site-$GITREF
-#        continue-on-error: true
-#        env:
-#          GITREF: ${{ needs.setref.outputs.gitref }}
-#      - name: Package and install helm
-#        run: |
-#          mkdir demo-site/charts/
-#          helm package \
-#            --version 0.1.0 ./demo-site \
-#            --destination ./demo-site/charts/ \
-#            --app-version $GITREF
-#          helm install -n dev demo-site-$GITREF demo-site/charts/demo-site-0.1.0.tgz \
-#            --set git.ref=$GITREF
-#        working-directory: helm
-#        env:
-#          GITREF: ${{ needs.setref.outputs.gitref }}
+      - name: Set k8s context
+        uses: azure/k8s-set-context@v1
+        with:
+          method: service-account
+          k8s-url: https://feissupplyaks001-128cf81f.hcp.eastus2.azmk8s.io/
+          k8s-secret: |
+            ${{ secrets.K8S_AUTH }}
+      - name: Debug
+        run: |
+          kubectl get namespaces
+      - name: Uninstall helm
+        run: |
+          helm uninstall -n dev demo-site-$GITREF
+        continue-on-error: true
+        env:
+          GITREF: ${{ needs.setref.outputs.gitref }}
+      - name: Package and install helm
+        run: |
+          mkdir demo-site/charts/
+          helm package \
+            --version 0.1.0 ./demo-site \
+            --destination ./demo-site/charts/ \
+            --app-version $GITREF
+          helm install -n dev demo-site-$GITREF demo-site/charts/demo-site-0.1.0.tgz \
+            --set git.ref=$GITREF
+        working-directory: helm
+        env:
+          #GITREF: ${{ needs.setref.outputs.gitref }}
+          GITREF: ${{ needs.version-bump.outputs.newversionwov }}
