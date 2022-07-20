@@ -124,7 +124,7 @@ jobs:
       - id: new-version
         name: Output new version
         run: |
-          NEWVERSION=`jq -r ".version" js/package.json`
+          NEWVERSION=`jq -r ".version" ./package.json`
           echo ::set-output name=newversion::v$NEWVERSION
           echo ::set-output name=newversionwov::$NEWVERSION
       - name: Check outputs
