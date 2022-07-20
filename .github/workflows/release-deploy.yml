@@ -115,12 +115,12 @@ jobs:
       - name: Version bump
         run: |
           standard-version --commit-all --verbose --packageFiles js/package.json --bumpFiles js/package.json
-#      - name: Push changes
-#        uses: ad-m/github-push-action@master
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          branch: main
-#          tags: true
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+          tags: true
       - id: new-version
         name: Output new version
         run: |
