@@ -179,6 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - setref
+      - version-bump
       - docker-build-push
     steps:
       - uses: actions/checkout@v2
